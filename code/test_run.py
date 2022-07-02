@@ -1,3 +1,6 @@
+import sys
+sys.dont_write_bytecode = True
+
 import argparse
 import textwrap
 from test_class import *
@@ -32,6 +35,8 @@ def main():
     elif args.question == 3:
         dtool = DetectTool_3(args=args)
         print(dtool.run())
+    else:
+        print('Error: Quession Number is incorrect')
     
 
 
