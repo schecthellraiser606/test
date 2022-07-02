@@ -1,0 +1,10 @@
+certifi==2020.6.20
+DateTime==4.4
+ipaddress==1.0.23
+numpy==1.19.5
+pandas==1.1.5
+python-dateutil==2.8.2
+pytz==2022.1
+six==1.16.0
+wincertstore==0.2
+zope.interface==5.4.0
