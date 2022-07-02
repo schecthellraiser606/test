@@ -50,8 +50,11 @@ class DetectTool_1:
     
 #設問２   
 class DetectTool_2(DetectTool_1):
+    #オーバーライド
     def run(self):
         tmp = self.find_failure()
+        
+        #N回判定追加
         if type(tmp) != type('string'):
             tmp = tmp.loc[tmp['period(m)'] >= self.term*self.args.number]
             if len(tmp) == 0:
