@@ -1,6 +1,8 @@
 import datetime
-from read_log import read_log
 import pandas as pd
+import ipaddress
+
+from read_log import read_log
 
 #設問1
 class DetectTool_1:
@@ -10,17 +12,24 @@ class DetectTool_1:
         self.args = args
         self.unique_addr = pd.unique(self.df['addr']) # IP一覧
         
+        #IPからネットワークアドレスを算出するlambda関数作成
+        f_ipnet = lambda x: str(ipaddress.IPv4Interface(x).network)
+        #ネットワークアドレスを新'network'カラムで格納
+        self.df['network'] = self.df['addr'].apply(f_ipnet)
+        
+        self.unique_net = pd.unique(self.df['network']) # NetWork一覧
+        
     def find_failure(self):
         if len(self.df.index) == 0:
             return 'No log Data'
         
         #結果格納スペース
-        head = ['start', 'period(m)' , 'addr']
+        head = ['failure-start', 'period(m)' , 'addr']
         failure_df = pd.DataFrame(index=[], columns=head)
         
         for addr in list(self.unique_addr):
             #IPアドレスごとに集計
-            tmp = self.df.loc[self.df['addr'] == addr]
+            tmp = self.df.loc[self.df['addr'] == addr].sort_values('date')
             
             # 初期値設定（時刻は仮に1500年として設定）
             count = 0
@@ -39,7 +48,8 @@ class DetectTool_1:
                     count = 0
                 else:
                     pass
-                
+            # 上記場合だとタイムアウト状態でログが終了していた場合に判定出来ないので、
+            # タイムアウトが続いていた段階でリスト投入を行う
             if count > 0:
                 record = pd.Series([start_date, self.term*count, addr], index=failure_df.columns)
                 failure_df = failure_df.append(record, ignore_index=True)
@@ -68,20 +78,20 @@ class DetectTool_2(DetectTool_1):
 
 #設問３
 class DetectTool_3(DetectTool_2):
+    #オーバーライド
     def find_failure(self):
         if len(self.df.index) == 0:
             return 'No log Data'
         
-        head = ['start', 'period(m)' , 'addr']
+        head = ['failure-start', 'period(m)' , 'addr']
         failure_df = pd.DataFrame(index=[], columns=head)
         
-        # '-'のタイムアウトに関してはタイムアウト10000msと仮定し、変換を行う
-        self.df['result'].loc[self.df['result'] == '-'] = '10000'
+        # '-'のタイムアウトに関しては10000msと仮定し、変換を行う
+        self.df.loc[self.df['result'] == '-', 'result'] = '10000'
         self.df = self.df.astype({'result':'int64'})
         
         for addr in list(self.unique_addr):
-            tmp = self.df.loc[self.df['addr'] == addr]
-            # print(tmp)
+            tmp = self.df.loc[self.df['addr'] == addr].sort_values('date')
             count = 0
             start_date = datetime.datetime(1500, 1, 1)
             
@@ -114,5 +124,28 @@ class DetectTool_3(DetectTool_2):
         if len(failure_df.index) == 0:
             return 'High load conditions have not occurred (or be too few logs)'
         return failure_df
+    
+class DetectTool_4(DetectTool_2):
+    #オーバーライド
+    def find_failure(self):
+        if len(self.df.index) == 0:
+            return 'No log Data'
+        
+        head = ['failure-start', 'period(m)' , 'addr']
+        failure_df = pd.DataFrame(index=[], columns=head)
+        
+        for net in list(self.unique_net):
+            #ネットワークアドレスごとに集計
+            tmp = self.df.loc[self.df['network'] == net].sort_values('date')
+            count = 0
+            uniq_addr = pd.unique(tmp['addr'])
+            flag_set = {ip: False for ip in uniq_addr}
+            start_date = datetime.datetime(1500, 1, 1)
+            
+
+            
+            
+        
+        return 
         
     
