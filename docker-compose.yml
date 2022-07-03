@@ -4,3 +4,4 @@ services:
       build: ./docker_env 
       volumes:
         - ./code:/code
+      tty: true

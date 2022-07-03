@@ -60,6 +60,7 @@ class DetectTool_1:
             
     def run(self):
         return self.find_failure()
+ 
     
 #設問２   
 class DetectTool_2(DetectTool_1):
@@ -75,6 +76,7 @@ class DetectTool_2(DetectTool_1):
             return tmp
         else:
             return tmp
+
 
 #設問３
 class DetectTool_3(DetectTool_2):
@@ -125,6 +127,8 @@ class DetectTool_3(DetectTool_2):
             return 'High load conditions have not occurred (or be too few logs)'
         return failure_df
     
+    
+#設問４
 class DetectTool_4(DetectTool_2):
     #オーバーライド
     def find_failure(self):
@@ -187,7 +191,6 @@ class DetectTool_4(DetectTool_2):
         #通常故障
         for addr in list(self.unique_addr):
             tmp = self.df.loc[self.df['addr'] == addr].sort_values('date')
-            print(tmp)
             count = 0
             start_date = datetime.datetime(1500, 1, 1)
             
