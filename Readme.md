@@ -100,7 +100,7 @@ root@e9f28b89e3c9:/code# python test_run.py -q 4
       - requirements.txt
 ```
 
-`code`ディレクトリ配下をコンテナ環境ｈへマウントしているので、基本的にこのディレクトリ配下のPythonコードを実行するようになっている。<br/>
+`code`ディレクトリ配下をコンテナ環境へマウントしているので、基本的にこのディレクトリ配下のPythonコードを実行するようになっている。<br/>
 ※詳しいコードの説明は各Pythonファイル内部に記載している。<br/>
 `docker_env`ディレクトリ配下は実行環境を整えるための各種設定のファイルを用意している。<br/>
 `docker-compose.yml`ファイルは`docker-compose`コマンドを実行するための設定である。
