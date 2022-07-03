@@ -24,7 +24,7 @@ class DetectTool_1:
             return 'No log Data'
         
         #結果格納スペース
-        head = ['failure-start', 'period(m)' , 'addr']
+        head = ['failure_start', 'period_minutes' , 'addr']
         failure_df = pd.DataFrame(index=[], columns=head)
         
         for addr in list(self.unique_addr):
@@ -69,7 +69,7 @@ class DetectTool_2(DetectTool_1):
         
         #N回判定追加
         if type(tmp) != type('string'):
-            tmp = tmp.loc[tmp['period(m)'] >= self.term*self.args.number]
+            tmp = tmp.loc[tmp['period_minutes'] >= self.term*self.args.number]
             if len(tmp) == 0:
                 return 'No failures have occurred'
             return tmp
@@ -83,7 +83,7 @@ class DetectTool_3(DetectTool_2):
         if len(self.df.index) == 0:
             return 'No log Data'
         
-        head = ['failure-start', 'period(m)' , 'addr']
+        head = ['failure_start', 'period_minutes' , 'addr']
         failure_df = pd.DataFrame(index=[], columns=head)
         
         # '-'のタイムアウトに関しては10000msと仮定し、変換を行う
@@ -131,21 +131,91 @@ class DetectTool_4(DetectTool_2):
         if len(self.df.index) == 0:
             return 'No log Data'
         
-        head = ['failure-start', 'period(m)' , 'addr']
+        head = ['failure_start', 'period_minutes' , 'addr', 'SW_failure']
         failure_df = pd.DataFrame(index=[], columns=head)
         
+        #スイッチ故障判定
         for net in list(self.unique_net):
             #ネットワークアドレスごとに集計
             tmp = self.df.loc[self.df['network'] == net].sort_values('date')
+            #初期値
             count = 0
-            uniq_addr = pd.unique(tmp['addr'])
-            flag_set = {ip: False for ip in uniq_addr}
+            uniq_addr = pd.unique(tmp['addr']) #同プレフィックス内IPのユニークリスト
+            flag_set = {ip: False for ip in uniq_addr} #同プレフィックス内IPでのタイムアウト有無フラグ
+            start_date = datetime.datetime(1500, 1, 1)
+            # スイッチが故障した時間帯は同分内でのタイムアウトが発生した場合とする。
+            calc_date = tmp.iloc[0,0] #同時間帯判定用の変数初期値
+            for row in tmp.itertuples():
+                if row.date - calc_date < datetime.timedelta(minutes=1):
+                    if row.result == '-' and not any(flag_set.values()) and count == 0:
+                        start_date = row.date
+                        flag_set[row.addr] = True
+                    elif row.result == '-' and any(flag_set.values()):
+                        flag_set[row.addr] = True
+                    elif row.result != '-' and count > 0:
+                        record = pd.Series([start_date, self.term*count, net, True], index=failure_df.columns)
+                        failure_df = failure_df.append(record, ignore_index=True)
+                        flag_set = {ip: False for ip in uniq_addr}
+                        count = 0
+                    else:
+                      pass
+                else:
+                    calc_date = row.date
+                    if row.result == '-' and all(flag_set.values()):
+                        count += 1
+                        flag_set = {ip: False for ip in uniq_addr}
+                        flag_set[row.addr] = True
+                    elif row.result != '-' and all(flag_set.values()):
+                        count += 1
+                        record = pd.Series([start_date, self.term*count, net, True], index=failure_df.columns)
+                        failure_df = failure_df.append(record, ignore_index=True)
+                        flag_set = {ip: False for ip in uniq_addr}
+                        count = 0
+                    elif row.result == '-' and not any(flag_set.values()) and count == 0:
+                        start_date = row.date
+                        flag_set[row.addr] = True
+                    elif row.result != '-' and any(flag_set.values()):
+                        flag_set = {ip: False for ip in uniq_addr}
+                        
+            if all(flag_set.values()):
+                count += 1
+                record = pd.Series([start_date, self.term*count, net, True], index=failure_df.columns)
+                failure_df = failure_df.append(record, ignore_index=True)
+                
+        switch_fail_list = failure_df
+            
+        #通常故障
+        for addr in list(self.unique_addr):
+            tmp = self.df.loc[self.df['addr'] == addr].sort_values('date')
+            print(tmp)
+            count = 0
             start_date = datetime.datetime(1500, 1, 1)
             
-
-            
-            
-        
-        return 
+            #スイッチ故障時の時間帯を除外
+            for swfail in switch_fail_list.itertuples():
+                del_date_end = swfail.failure_start + datetime.timedelta(minutes=swfail.period_minutes)
+                tmp = tmp.drop(index = tmp.loc[(tmp['date'] < del_date_end) & (tmp['date'] >= swfail.failure_start)].index)
+                
+            # 故障判定
+            for row in tmp.itertuples():
+                if row.result == '-' and count == 0:
+                    start_date = row.date
+                    count += 1
+                elif row.result == '-' :
+                    count += 1
+                elif row.result != '-' and count > 0:
+                    record = pd.Series([start_date, self.term*count, addr, False], index=failure_df.columns)
+                    failure_df = failure_df.append(record, ignore_index=True)
+                    count = 0
+                else:
+                    pass
+                
+            if count > 0:
+                record = pd.Series([start_date, self.term*count, addr], index=failure_df.columns)
+                failure_df = failure_df.append(record, ignore_index=True)
+                    
+        if len(failure_df.index) == 0:
+            return 'No failures have occurred'
+        return failure_df
         
     
