@@ -1,5 +1,6 @@
 # 実行方法
-まずDocker(docker-compose含む)が入っている環境を用意する。その環境上で以下を実行。
+まずDocker(docker-compose含む)が入っている環境を用意する。<br/>
+本Gitのリポジトリをクローンし、`docker-compose.yml`ファイルがある環境で以下を実行。
 ```
 #dockerで環境立ち上げ
 docker-compose up -d
